@@ -11,15 +11,24 @@ def submit(input_system):
     else:
         return False
 
-def modify_current_password(input_system, password):
+def modify_current_input(input_system, input):
     key_released = get_key_released(input_system)
-    password.append(key_released)
-    return password
+    input.append(key_released)
+    return input
 
-def get_user_input(input_system, password):
+def get_user_input(input_system, username, password, submit_state):
+    if submit_state:
+        return True, password, username
+    if input_system.field == "username":
+        if submit:
+           input_system.field == "password"
+           return False, password, username
+        else:
+           username = modify_current_input(input_system, username)
+        
     if submit:
-        return True, password
-    password = modify_current_password(input_system, password)
-    return False, password
+        return True, password, username
+    password = modify_current_input(input_system, password)
+    return False, password, username
 
     
