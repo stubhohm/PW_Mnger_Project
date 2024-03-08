@@ -1,9 +1,10 @@
 from user_salts import uuid
 # verify input
 class Authenticator():
-    def __init__(self, hashlib, salt):
+    def __init__(self, hashlib, salt, random):
         self.hashlib = hashlib
         self.salt = salt
+        self.random = random
 
     def hash_input(self, hash_i):
         hash_o = self.hashlib.sha256(hash_i)
@@ -20,7 +21,11 @@ class Authenticator():
         return stored_hash
 
     def generate_salt(self):
-        return 0
+        key_length = 16
+        random_key = self.random.range(0,9)
+        for i in range(key_length):
+            random_digit = self.random.range(0,9)
+            random_key = (random_key *10) + random_digit
 
     def get_salt(self, username):
         for user in uuid:
