@@ -1,7 +1,9 @@
 # decyprt data, my implimentation of AES that will have internal hash for security
 # and to verify that the implimentation is uncompromised
 
-class Cyptography():
+class Cryptography():
+    class_name = "Cryptography"
+    class_id = 5
     def __init__(self) -> None:
         pass
 

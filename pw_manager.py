@@ -1,7 +1,11 @@
 import smtplib
 import sqlite3
 import hashlib
-from Services.Cyrptography import Cyptography
+import random
+from tkinter import *
+from tkinter import ttk
+from Services.ENUMS import InputFields
+from Services.Cyrptography import Cryptography
 from Services.GUI import GUI
 from Services.Active_User import ActiveUser
 from Services.SQL_Sever import SQLSever
@@ -26,19 +30,28 @@ I will put in dummy passwords for random stuff like router, safe combo, bike loc
     # prevent email MFA spoofing via changing where it is trying to send it via code
 
 def init_instances():
-    return SQLSever, ActiveUser, Authenticator, Cyptography, GUI, InputSystem
+    SQLsvr = SQLSever(sqlite3, random, hashlib)
+    user = ActiveUser(hashlib)
+    auth = Authenticator()
+    crypt = Cryptography()
+    UI = GUI(Tk())
+    UI.init_dispaly(ttk)
+    input = InputSystem(InputFields.username)
+    return SQLsvr, user, auth, crypt, UI, input 
 
 def main():
     SQL_db, user, authenticator, crypt, GUI, input_system = init_instances()
-    active = True
-    while active:
-        user.get_user_input(input_system, user.username, user.password, submit_state)
-        if user.submit_state and authenticator.auth_logins(user.username, user.password, SQL_db):   
-            key = 
-            crypt.AES(cypher_text, key)
+    while user.active:
+        input_system.get_user_input(user)
+        if user.submit_state and authenticator.auth_logins(user, SQL_db):   
+            if not user.start_session:
+                user.getnerate_encryption_key()
+                user.generate_session_id(random)
+            SQL_db.get_cypher_text(user.username)
+            crypt.AES(SQL_db.cypher_text, user.start_session_key)
         else:
-            submit_state = False
-        GUI.update_display(input_system)
+            user.submit_state = False
+        GUI.update_display(user)
         # Add/Edit/Delete password option requires a reentering password and a second MFA
 
 

@@ -1,59 +1,44 @@
 # user input 
 # high level implimented does not function but is a skeleton of what it needs
 class ActiveUser():
-    def __init__(self, session_id, submit_state = False, username = None, password = None):
+    class_name = "ActiveUser"
+    class_id = 3
+    
+    def __init__(self, 
+                 hashlib,
+                 session_id = None,
+                 submit_state = False, 
+                 username = [], 
+                 password = [],
+                 start_session = False,
+                 active = True,
+                 start_session_key = None, 
+                 end_session_key = None):
         self.session_id = session_id
         self.submit_state = submit_state
         self.username = username
         self.password = password
+        self.hashlib = hashlib
+        self.active = active
+        self.start_session = start_session
+        self.start_session_key = start_session_key
+        self.end_session_key = end_session_key
+        
 
-    def get_key_released(self, input_system):
-        a = 0
-
-    def set_session_id(self, random, hashlib):
+    def generate_session_id(self, random):
         key_length = 16
         random_key = random.range(0,9)
+        self.start_session = True
         for i in range(key_length):
             random_digit = random.range(0,9)
             random_key = (random_key *10) + random_digit
-        return hashlib.sha256(random_key)
-        
-    def submit(self, input_system):
-        key_released = self.get_key_released(input_system)
-        if key_released == 0:
-            self.submit_state = True
-        else:
-            self.submit_state = False
-        return self.submit_state
+        hashed_un = self.hashlib.sha256(self.username)
+        hashed_rk = self.hashlib.sha256(random_key)
+        session_id = self.hashlib.sha256(hashed_rk + hashed_un)
+        return session_id
 
-    def modify_current_input(self, input_system, input):
-        key_released = self.get_key_released(input_system)
-        # if input is delete or backscape pop, else, append
-        input.append(key_released)
-        return input
-
-    def get_user_input(self, input_system, username, password, submit_state):
-        # For now if the user has submitted username and password stop gathering input
-        if submit_state:
-            return
-        
-        # If we are in the username field
-        if input_system.field.value == 1:
-            if self.submit(input_system):
-                # If we submit the username, jump to the password field
-                input_system.field.update_field(2)
-                self.submit_state = False
-                return
-            else:
-                self.username = self.modify_current_input(input_system, username)   
-        
-        # If we are not in username and are in the password field
-        elif input_system.field.value == 2:
-            if self.submit(input_system):
-                # If we are in the password field submit entered credentials
-                return
-            else:
-                self.password = self.modify_current_input(input_system, password) 
-
-
+    def getnerate_encryption_key(self):
+        hash_i = self.username + self.password
+        key = self.hashlib.sha256(hash_i)
+        self.start_session_key = key
     

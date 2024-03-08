@@ -1,49 +1,10 @@
-from user_salts import uuid
 # verify input
 class Authenticator():
-    def __init__(self, hashlib, salt, random):
-        self.hashlib = hashlib
-        self.salt = salt
-        self.random = random
+    def __init__(self, authenticated = False):
+        self.authenticated = authenticated
 
-    def hash_input(self, hash_i):
-        hash_o = self.hashlib.sha256(hash_i)
-        return hash_o
-
-    def hash_salt_input(self, hash_i, salt_i):
-        hash_salt_i = hash_i + salt_i
-        hash_salt_o = self.hashlib.sha256(hash_salt_i)
-        return hash_salt_o
-
-    def get_stored_hash(self, called_item):
-        # look up in stored hash table
-        stored_hash = called_item
-        return stored_hash
-
-    def generate_salt(self):
-        key_length = 16
-        random_key = self.random.range(0,9)
-        for i in range(key_length):
-            random_digit = self.random.range(0,9)
-            random_key = (random_key *10) + random_digit
-
-    def get_salt(self, username):
-        for user in uuid:
-            if user[0] == username:
-                return user[0]
-            else:
-                return self.generate_salt()
-
-    def compare_hash(self, called_item, generated_hash):
-        stored_hash = self.get_stored_hash(called_item)
-        if stored_hash == generated_hash:
-            return True
-        else:
-            # log login attempt
-            return False
-
-    def auth_logins(self, username, password, SQL_db):
-        salt = self.get_salt(username, SQL_db)
-        hs_attempt = self.hash_salt_input(password, salt)
-        authentication = self.compare_hash(username, hs_attempt)
-        return authentication
+    def auth_logins(self, user, SQL_db):
+        salt = SQL_db.get_salt(user.username)
+        hs_attempt = SQL_db.hash_salt_input(user.password, salt)
+        stored_hash = SQL_db.get_stored_hash(user.username)
+        self.authenticated = SQL_db.compare_hash(stored_hash, hs_attempt)
