@@ -2,8 +2,9 @@ import smtplib
 import sqlite3
 import hashlib
 import random
+import secrets
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from Services.ENUMS import InputFields
 from Services.Cyrptography import Cryptography
 from Services.GUI import GUI
@@ -30,33 +31,45 @@ I will put in dummy passwords for random stuff like router, safe combo, bike loc
     # prevent email MFA spoofing via changing where it is trying to send it via code
 
 def init_instances():
-    SQLsvr = SQLSever(sqlite3, random, hashlib)
+    SQLsvr = SQLSever(sqlite3, random, hashlib, secrets)
+    SQLsvr.init_data_tables()
     user = ActiveUser(hashlib)
     auth = Authenticator()
     crypt = Cryptography()
-    UI = GUI(Tk())
-    UI.init_dispaly(ttk)
-    input = InputSystem(InputFields.username)
+    input = InputSystem()
+    UI = GUI(Tk(), ttk, messagebox)
+    UI.init_display()
     return SQLsvr, user, auth, crypt, UI, input 
+
+def shutdown_procedure():
+    print("shutting down")
 
 def main():
     SQL_db, user, authenticator, crypt, GUI, input_system = init_instances()
     while user.active:
-        input_system.get_user_input(user)
+        if user.submit_state and user.new_user:
+            # Submits new user data to the credentials data table
+            SQL_db.add_user(user)
         if user.submit_state and authenticator.auth_logins(user, SQL_db):   
             if not user.start_session:
-                user.getnerate_encryption_key()
-                user.generate_session_id(random)
+                # At the start of the password session generate a unique session ID
+                # Generate encryption key by merging the username and salted password, then hash that merge to make the private key.
+                user.start_session = True
+                crypt.generate_encryption_key(user, SQL_db.get_salt(user.username))
+                user.generate_session_id(random, authenticator)
             SQL_db.get_cypher_text(user.username)
             crypt.AES(SQL_db.cypher_text, user.start_session_key)
         else:
             user.submit_state = False
-        GUI.update_display(user)
+        GUI.update_display(user, input_system, SQL_db)
+        if not user.active:
+            shutdown_procedure()
         # Add/Edit/Delete password option requires a reentering password and a second MFA
 
 
 if __name__ == "__main__":
+    
     main()
     print(
-        "this main only runs if this file is ran, not if another program executes it: Spline_drawer"
+        "this main only runs if this file is ran, not if another program executes it: pw_manager"
     )

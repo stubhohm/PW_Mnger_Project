@@ -3,8 +3,12 @@ class InputSystem():
     class_id = 2
     
     def __init__(self, 
-                 field,):
+                 field,
+                 un = None,
+                 pw = None):
         self.field = field
+        self.un = un
+        self.pw = pw
 
     def get_key_released(self):
         a = 0

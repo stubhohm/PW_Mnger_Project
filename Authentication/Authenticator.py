@@ -1,7 +1,8 @@
 # verify input
 class Authenticator():
-    def __init__(self, authenticated = False):
+    def __init__(self, authenticated = False, session_id = None):
         self.authenticated = authenticated
+        self.session_id = session_id
 
     def auth_logins(self, user, SQL_db):
         salt = SQL_db.get_salt(user.username)
