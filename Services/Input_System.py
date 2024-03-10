@@ -1,58 +1,42 @@
+def contain_special_character(text):
+    special_characters = r"!@#$%^&*()_+={}[]:;<>,.?/\|`~\""
+    return any(char in special_characters for char in text)
+
+def unique_username(username, SQL_server):
+    return True
+
 class InputSystem():
     class_name = "InputSystem"
     class_id = 2
     
     def __init__(self, 
-                 field,
                  un = None,
-                 pw = None):
-        self.field = field
+                 pw1 = None,
+                 pw2 = None,
+                 active_field = False):
         self.un = un
-        self.pw = pw
+        self.pw1 = pw1
+        self.pw2 = pw2
+        self.active_field = active_field
 
-    def get_key_released(self):
-        a = 0
-
-    def update_field(self, new_field):
-        if new_field == InputFields.password.value:
-            self.field = InputFields.password
+    def validate_password_complexity(self):
+        pw = self.pw1.get()
+        if not any(char.isdigit() for char in pw):
+            return False
+        if not any(char.isalpha() for char in pw):
+            return False
+        if not contain_special_character(pw):
+            return False
+        if not 7 < len(pw) < 33:
+            return False
+        return True
         
-        if new_field == InputFields.username.value:
-            self.field = InputFields.username
-
-    def submit(self, user):
-        key_released = self.get_key_released()
-        if key_released == 0:
-            user.submit_state = True
-        else:
-            user.submit_state = False
-        return user.submit_state
-
-    def modify_current_input(self, input):
-        key_released = self.get_key_released()
-        # if input is delete or backscape pop, else, append
-        input.append(key_released)
-        return input
-
-    def get_user_input(self, user):
-        # For now if the user has submitted username and password stop gathering input
-        if user.submit_state:
-            return
-        
-        # If we are in the username field
-        if self.field.value == 1:
-            if self.submit(user):
-                # If we submit the username, jump to the password field
-                self.field.update_field(2)
-                user.submit_state = False
-                return
-            else:
-                user.username = self.modify_current_input(user.username)   
-        
-        # If we are not in username and are in the password field
-        elif self.field.value == 2:
-            if self.submit(user):
-                # If we are in the password field submit entered credentials
-                return
-            else:
-                self.password = self.modify_current_input(user.password) 
+    def validate_username(self, SQL_server):
+        un = self.un.get()
+        if not 7 < len(un) < 33:
+            print("Your username must be bettween 7 and 32 characters")
+            return False
+        if SQL_server.unique_username(un):
+            print("That username is already taken")
+            return False
+        return True

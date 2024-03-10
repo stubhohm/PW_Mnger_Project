@@ -13,7 +13,8 @@ class ActiveUser():
                  start_session = False,
                  active = True,
                  start_session_key = None, 
-                 end_session_key = None):
+                 end_session_key = None,
+                 new_user = False):
         self.session_id = session_id
         self.submit_state = submit_state
         self.username = username
@@ -23,9 +24,10 @@ class ActiveUser():
         self.start_session = start_session
         self.start_session_key = start_session_key
         self.end_session_key = end_session_key
+        self.new_user = new_user
         
 
-    def generate_session_id(self, random):
+    def generate_session_id(self, random, authenticator):
         key_length = 16
         random_key = random.range(0,9)
         self.start_session = True
@@ -35,10 +37,7 @@ class ActiveUser():
         hashed_un = self.hashlib.sha256(self.username)
         hashed_rk = self.hashlib.sha256(random_key)
         session_id = self.hashlib.sha256(hashed_rk + hashed_un)
-        return session_id
+        self.session_id = session_id
+        authenticator.session_id = session_id
 
-    def getnerate_encryption_key(self):
-        hash_i = self.username + self.password
-        key = self.hashlib.sha256(hash_i)
-        self.start_session_key = key
     
