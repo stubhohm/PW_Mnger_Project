@@ -8,13 +8,13 @@ class ActiveUser():
                  hashlib,
                  session_id = None,
                  submit_state = False, 
-                 username = [], 
-                 password = [],
+                 username = '', 
+                 password = '',
                  start_session = False,
                  active = True,
-                 start_session_key = None, 
-                 end_session_key = None,
-                 new_user = False):
+                 encryption_key = None, 
+                 new_user = False,
+                 plain_text = None):
         self.session_id = session_id
         self.submit_state = submit_state
         self.username = username
@@ -22,22 +22,21 @@ class ActiveUser():
         self.hashlib = hashlib
         self.active = active
         self.start_session = start_session
-        self.start_session_key = start_session_key
-        self.end_session_key = end_session_key
+        self.encryption_key = encryption_key
         self.new_user = new_user
-        
+        self.plain_text = plain_text
 
-    def generate_session_id(self, random, authenticator):
-        key_length = 16
-        random_key = random.range(0,9)
-        self.start_session = True
-        for i in range(key_length):
-            random_digit = random.range(0,9)
-            random_key = (random_key *10) + random_digit
-        hashed_un = self.hashlib.sha256(self.username)
-        hashed_rk = self.hashlib.sha256(random_key)
-        session_id = self.hashlib.sha256(hashed_rk + hashed_un)
-        self.session_id = session_id
-        authenticator.session_id = session_id
+    def delete_cache(self):
+        self.hashlib = None
+        self.session_id = None
+        self.submit_state = False
+        self.username = ''
+        self.password = ''
+        self.start_session = False
+        self.active = False
+        self.encryption_key = None
+        self.new_user = False
+        self.plain_text = None
+        
 
     

@@ -1,23 +1,24 @@
 path = 'password_database.db'
 credential_table = 'UserCredentials'
 passwords_table = 'UserPasswords'
+
 un_sql = 'username'
 salt_sql = 'salt'
 hashed_pass_sql = 'hashed_password'
 user_id_sql = 'user_id'
 other_un_sql = 'other_username'
 other_pass_sql = 'other_password'
+description_sql = 'description'
 
 class SQLSever:
     class_name = 'SQLSever'
     class_id = 1
 
-    def __init__(self, sqlite3, random, hashlib, secrets, IP = None):
+    def __init__(self, sqlite3, crypt, IP = None, cipher_text = None):
         self.sqlite3 = sqlite3
-        self.random = random
-        self.hashlib = hashlib
-        self.secrets = secrets
+        self.crypt = crypt
         self.IP = IP
+        self.cipher_text = cipher_text
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
         
@@ -31,32 +32,29 @@ class SQLSever:
     def static_method():
         print('This returns something that always returns specific output')
 
+    def close_db(self, user):
+        # Update the password at the end of the session
+        salt_i = self.get_salt(user.username)
+        hash_o = self.crypt.hash_salt_input(user.password, salt_i)
+        update_query = f"UPDATE {passwords_table} SET column_name = ? WHERE id = ?"
+        self.cursor.execute(update_query,(hash_o, {hashed_pass_sql}))
+
+        # Encrypt the plain text then end the session
+        self.crypt.generate_encryption_key(user, salt_i)
+        self.crypt.encrypt_AES(user.plain_text, user.encryption_key, self)
+        self.connection.close()
+
     def get_salt(self, username):
         # Perform SQL query to get password salt
         self.cursor.execute(f'SELECT {salt_sql} FROM {credential_table} WHERE {un_sql} = ?', (username,))
         results = self.cursor.fetchone()[0]
         return results
-    
-    def hash_input(self, hash_i):
-        hash_o = self.hashlib.sha256(hash_i)
-        return hash_o
-
-    def hash_salt_input(self, hash_i, salt_i):
-        hash_salt_i = hash_i + salt_i
-        hash_salt_o = self.hashlib.sha256(hash_salt_i.encode('utf-8'))
-        return hash_salt_o.hexdigest()
 
     def get_stored_hash(self, username):
         # look up in stored hash table
         self.cursor.execute(f'SELECT {hashed_pass_sql} FROM {credential_table} WHERE {un_sql} = ?', (username,))
         results = self.cursor.fetchone()[0]
         return results
-
-    def generate_salt(self):
-        key_length = 16
-        salt_bytes = self.secrets.token_bytes(key_length)
-        salt = ''.join(format(byte, "02x") for byte in salt_bytes)
-        return salt
 
     def compare_hash(self, stored_hash, generated_hash):
         if stored_hash == generated_hash:
@@ -87,8 +85,11 @@ class SQLSever:
 
         self.connection.commit()
 
-
-    def get_cypher_text(self, username):
+    def get_cipher_text(self, username):
+        self.cursor.execute(f'SELECT * FROM {passwords_table} WHERE {un_sql} == ?',(username))
+        results = self.cursor.fectchall()
+        for row in results:
+            print(row)
         self.connection.commit()
 
     def unique_username(self, username):
@@ -97,8 +98,8 @@ class SQLSever:
         return results is not None and results[0]>0
 
     def add_user(self, user):
-        salt = self.generate_salt()
-        hashed_salted_pass = self.hash_salt_input(user.password, salt)
+        salt = self.crypt.generate_salt()
+        hashed_salted_pass = self.crypt.hash_salt_input(user.password, salt)
         self.cursor.execute(f'''
             INSERT INTO {credential_table} ({un_sql}, {salt_sql}, {hashed_pass_sql})
             VALUES (?, ?, ?)

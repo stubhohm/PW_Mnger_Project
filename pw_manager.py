@@ -3,8 +3,10 @@ import sqlite3
 import hashlib
 import random
 import secrets
-from tkinter import *
-from tkinter import ttk, messagebox
+import tkinter as tk 
+from tkinter import Tk, ttk, messagebox
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
 from Services.ENUMS import InputFields
 from Services.Cyrptography import Cryptography
 from Services.GUI import GUI
@@ -12,7 +14,6 @@ from Services.Active_User import ActiveUser
 from Services.SQL_Sever import SQLSever
 from Services.Input_System import InputSystem
 from Authentication.Authenticator import Authenticator
-
 """
 Project Goal:
 To make an application that stores hashed and salted passwords in an encrypted file,
@@ -31,41 +32,70 @@ I will put in dummy passwords for random stuff like router, safe combo, bike loc
     # prevent email MFA spoofing via changing where it is trying to send it via code
 
 def init_instances():
-    SQLsvr = SQLSever(sqlite3, random, hashlib, secrets)
+    crypt = Cryptography(secrets, hashlib, random, Cipher, algorithms, modes, default_backend)
+    SQLsvr = SQLSever(sqlite3, Cryptography(secrets, hashlib, random, Cipher, algorithms, modes, default_backend))
     SQLsvr.init_data_tables()
     user = ActiveUser(hashlib)
     auth = Authenticator()
-    crypt = Cryptography()
     input = InputSystem()
-    UI = GUI(Tk(), ttk, messagebox)
+    UI = GUI(Tk(), tk, ttk, messagebox)
     UI.init_display()
     return SQLsvr, user, auth, crypt, UI, input 
 
-def shutdown_procedure():
+def update_plain_text(SQL_db, user, crypt):
+    SQL_db.get_cipher_text(user.username)
+    for entry in SQL_db.cipher_text:
+        decrypted_entry = []
+        for text in entry:
+            decrpyted_text = crypt.decrypt_AES(text, user.encryption_key)
+            decrypted_entry.append(decrpyted_text)
+        user.plain_text.append(decrypted_entry)
+
+def init_session(user, SQL_db, authenticator, crypt):
+    if user.failed_attempts > 5:
+        print("Sorry, you account is locked")
+        return
+    if user.start_session:
+        return
+    # At the start of the password session generate a unique session ID
+    # Generate encryption key by merging the username and salted password, then hash that merge to make the private key.
+    user.start_session = True
+    user.failed_attempts = 0
+    crypt.generate_encryption_key(user, SQL_db.get_salt(user.username))
+    crypt.generate_session_id(user, authenticator)
+    update_plain_text(SQL_db, user, crypt)
+    
+def continue_session(user, SQL_db, authenticator, crypt, input_system):
+    if authenticator.session_id != user.session_id:
+        user.active = False
+        return
+    if user.submit_acct:
+        update_plain_text(SQL_db, user, crypt)    
+    SQL_db.add_acct(user, input_system)
+    
+def shutdown_procedure(SQL_db,user, input, auth):
+    SQL_db.close_db(user)
+    user.delete_cache()
+    input.delete_cache()
+    auth.delete_cache()
     print("shutting down")
 
 def main():
     SQL_db, user, authenticator, crypt, GUI, input_system = init_instances()
+    SQL_db.print_all()
     while user.active:
         if user.submit_state and user.new_user:
             # Submits new user data to the credentials data table
             SQL_db.add_user(user)
         if user.submit_state and authenticator.auth_logins(user, SQL_db):   
-            if not user.start_session:
-                # At the start of the password session generate a unique session ID
-                # Generate encryption key by merging the username and salted password, then hash that merge to make the private key.
-                user.start_session = True
-                crypt.generate_encryption_key(user, SQL_db.get_salt(user.username))
-                user.generate_session_id(random, authenticator)
-            SQL_db.get_cypher_text(user.username)
-            crypt.AES(SQL_db.cypher_text, user.start_session_key)
+            init_session(user, SQL_db, authenticator, crypt)
+            continue_session(user, SQL_db, authenticator, crypt, input_system)
         else:
             user.submit_state = False
         GUI.update_display(user, input_system, SQL_db)
         if not user.active:
-            shutdown_procedure()
+            shutdown_procedure(SQL_db, user, input_system, authenticator)
         # Add/Edit/Delete password option requires a reentering password and a second MFA
-
 
 if __name__ == "__main__":
     

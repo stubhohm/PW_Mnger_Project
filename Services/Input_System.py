@@ -19,6 +19,12 @@ class InputSystem():
         self.pw2 = pw2
         self.active_field = active_field
 
+    def delete_cache(self):
+        self.un = None
+        self.pw1 = None
+        self.pw2 = None
+        self.active_field = None
+
     def validate_password_complexity(self):
         pw = self.pw1.get()
         if not any(char.isdigit() for char in pw):
