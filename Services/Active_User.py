@@ -7,16 +7,18 @@ class ActiveUser():
     def __init__(self, 
                  hashlib,
                  session_id = None,
-                 submit_state = False, 
+                 submit_state = False,
+                 submit_acct = False, 
                  username = '', 
                  password = '',
                  start_session = False,
                  active = True,
                  encryption_key = None, 
                  new_user = False,
-                 plain_text = None):
+                 plain_text = []):
         self.session_id = session_id
         self.submit_state = submit_state
+        self.submit_acct = submit_acct
         self.username = username
         self.password = password
         self.hashlib = hashlib
@@ -25,6 +27,7 @@ class ActiveUser():
         self.encryption_key = encryption_key
         self.new_user = new_user
         self.plain_text = plain_text
+        self.failed_attempts = 0
 
     def delete_cache(self):
         self.hashlib = None

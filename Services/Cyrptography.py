@@ -22,9 +22,19 @@ class Cryptography():
         self.default_backend = default_backend
         self.key = key
 
+    def add_padding(self, data):
+        block_size = 16
+        pad_size = block_size - len(data) % block_size
+        padding = bytes([pad_size] * pad_size)
+        return data + padding
+    
+    def remove_padding(self, data):
+        pad_size = data[-1]
+        return data[:-pad_size]
+
     def generate_encryption_key(self, user, salt, keylength=32, iteration=100000,):
         data = (user.username + salt + user.password).encode('utf-8')
-        self.key = self.hashlib.pbkdf2_hmac('sha256', data, salt.encode('utf-8'), iteration, keylength)
+        user.encryption_key = self.hashlib.pbkdf2_hmac('sha256', data, salt.encode('utf-8'), iteration, keylength)
 
     def generate_session_id(self, user, authenticator):
         key_length = 16
@@ -54,14 +64,22 @@ class Cryptography():
         salt = ''.join(format(byte, "02x") for byte in salt_bytes)
         return salt
 
-    def encrypt_AES(self, plain_text, key, SQL_db):
+    def encrypt_AES(self, plain_text, key):
+        if not isinstance(plain_text, str):
+            return plain_text
+        text = plain_text.encode('utf-8')
+        text = self.add_padding(text)
         cipher = self.Cipher(self.algos.AES(key), self.modes.ECB(), self.default_backend())
         encryptor = cipher.encryptor()
-        cipher_text = encryptor.update(plain_text) + encryptor.finalize()
-        SQL_db.cipher_text = cipher_text
-
-    def decrypt_AES(self, cipher_text, key, user):
+        cipher_text = encryptor.update(text) + encryptor.finalize()
+        return cipher_text
+        
+    def decrypt_AES(self, cipher_text, key):
+        if not isinstance(cipher_text, bytes):
+            return cipher_text
         cipher = self.Cipher(self.algos.AES(key), self.modes.ECB(), self.default_backend())
         decryptor = cipher.decryptor()
-        plain_text = decryptor.update(cipher_text) + decryptor.finalize()
-        user.plain_text = plain_text
+        plain_text = decryptor.update(bytes(cipher_text)) + decryptor.finalize()
+        plain_text = self.remove_padding(plain_text)
+        plain_text = plain_text.decode()
+        return plain_text
