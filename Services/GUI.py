@@ -14,6 +14,7 @@ class GUI():
         self.messagebox = messagebox
         self.show_pass = False
         self.add_acct = False
+        self.edit_acct = False
 
     def clear_window(self, display):
         for widget in display.winfo_children():
@@ -168,18 +169,40 @@ class GUI():
         self.add_acct = True
         input_system.active_field = False
 
-    def display_pass_table(self, user):
-        table_header = f"Stored Accounts"
+    def start_edit_row(self, i, event=None):
+        print(i)
+        print(type(event))
+        '''
+        for item in i:
+            print(item)
+        a = 0
+        '''      
+
+    def display_pass_table(self, user, masked = False):
+        # Displays the table of passwords. The option to edit from the table is commented out
+        # Inserting buttons into a table via ttk.Treeview is proving to be a challenge, so I am moving on and will come back later.
+        table_header = f"Stored Accounts for {user.username}"
         table_banner = self.ttk.Label(self.display, text=table_header)
         table_banner.pack(pady = (20,5), side=self.tk.LEFT, padx = WIDTH/2)
-        pass_table = self.ttk.Treeview(self.display, columns=('Column1','Column2','Column3'))
+        pass_table = self.ttk.Treeview(self.display, columns=('Column1','Column2','Column3'))#, 'Column4'))
         pass_table.heading('Column1', text = 'Username')
         pass_table.heading('Column2', text = 'Password')
         pass_table.heading('Column3', text = 'Description')
         pass_table.pack(pady = (5,5), side=self.tk.LEFT)
-        for row in user.plain_text:    
+        pass_table['show'] = ''
+        pass_table.tag_configure('button', foreground='blue')
+        for i, row in enumerate(user.plain_text):    
             data = row[-3:]
-            pass_table.insert('','end',values=data)
+            edit_button = self.ttk.Button(self.display, text = 'Edit', command=lambda i=i: self.start_edit_row(i))
+            if masked:
+                data = ['******','******',row[-1]]
+            pass_table.insert('','end',values=data)# + ['Edit'], tags=(f'button_{i}'))
+            #pass_table.tag_configure(f'button_{i}', background='blue', foreground='white')
+            #pass_table.tag_bind(f'button_{i}', '<Button-1>', lambda event, item_id=i: self.start_edit_row(item_id, event))         
+            
+
+    def edit_active_accounts(self, user, input_system, SQL_server):
+        self.display_pass_table(user, True)
 
     def password_menu(self, user, input_system, SQL_server):
         self.clear_window(self.display)
@@ -187,6 +210,8 @@ class GUI():
         welcome_banner = f"Welcome {user.username}!!"
         welcome_sign = self.ttk.Label(self.display, text=welcome_banner)
         welcome_sign.pack(pady = (5,20), padx = WIDTH * 2)
+        if self.edit_acct:
+            self.edit_active_accounts(user, input_system, SQL_server)
         if self.add_acct:
             self.add_new_acct(user, input_system, SQL_server)
             return
@@ -199,13 +224,12 @@ class GUI():
 
         toggle_pass = self.ttk.Button(self.display, text = button_text, command=lambda: self.toggle_pass(input_system))
         toggle_pass.pack(pady=20, side=self.tk.LEFT, padx=(WIDTH/2, 0))
-
-        add_pass = self.ttk.Button(self.display, text = 'Add Account', command=lambda: self.add_password(input_system))
-        add_pass.pack(pady=20, side=self.tk.RIGHT, padx=(0, WIDTH/2))
         if self.show_pass:
             self.display_pass_table(user)
         else:
             print("we are hiding stuff")
+        add_pass = self.ttk.Button(self.display, text = 'Add Account', command=lambda: self.add_password(input_system))
+        add_pass.pack(pady=20, side=self.tk.RIGHT, padx=(0, WIDTH/2))
 
     def update_display(self, user, input_system, SQL_server):
         self.display.protocol("WM_DELETE_WINDOW", lambda: self.close_window(self, user))

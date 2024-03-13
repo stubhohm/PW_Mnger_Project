@@ -14,6 +14,7 @@ from Services.Active_User import ActiveUser
 from Services.SQL_Sever import SQLSever
 from Services.Input_System import InputSystem
 from Authentication.Authenticator import Authenticator
+
 """
 Project Goal:
 To make an application that stores hashed and salted passwords in an encrypted file,
@@ -96,6 +97,7 @@ def main():
         if not user.active:
             shutdown_procedure(SQL_db, user, input_system, authenticator)
         # Add/Edit/Delete password option requires a reentering password and a second MFA
+    return 0
 
 if __name__ == "__main__":
     
